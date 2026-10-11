@@ -1,0 +1,478 @@
+/* ============================================================
+   Design tokens, reset, typography, primitives
+   Matches YouTube's actual design system (Roboto, flat surfaces,
+   tight radii, no glassmorphism/gradients on chrome).
+   ============================================================ */
+:root {
+  /* YouTube red — used sparingly like the real site (logo, some accents) */
+  --accent: #cc0000;
+  --accent-strong: #a80000;
+  --accent-soft: rgba(204, 0, 0, 0.12);
+
+  /* Radii — YouTube uses tight radii; thumbs 12px, buttons 18px / full pill */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 12px;
+  --radius-pill: 18px;
+
+  /* Layout metrics (YouTube's real numbers) */
+  --header-h: 56px;
+  --rail-w: 72px;
+  --side-w: 240px;
+  --main-pad: 24px;
+
+  /* Flat, minimal shadows — YouTube barely uses elevation */
+  --shadow-1: 0 4px 32px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 4px 32px rgba(0, 0, 0, 0.2);
+  --shadow-pop: 0 4px 32px rgba(0, 0, 0, 0.2);
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --fast: 100ms var(--ease);
+  --slow: 200ms var(--ease);
+}
+
+/* Dark theme — YouTube's real dark palette */
+html[data-theme="dark"] {
+  --bg: #0f0f0f;
+  --bg-2: #272727;
+  --elev: #272727;
+  --elev-2: #3f3f3f;
+  --panel: #212121;
+  --hover: rgba(255, 255, 255, 0.1);
+  --hover-strong: rgba(255, 255, 255, 0.2);
+  --line: rgba(255, 255, 255, 0.2);
+  --text: #f1f1f1;
+  --text-2: #aaaaaa;
+  --text-3: #717171;
+  --scrim: rgba(0, 0, 0, 0.85);
+  --header-bg: #0f0f0f;
+  --glass: #0f0f0f;
+  --chip: #272727;
+  --chip-hover: #3f3f3f;
+  --skeleton-a: #272727;
+  --skeleton-b: #3f3f3f;
+}
+
+/* Light theme — YouTube's real light palette */
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-2: #f2f2f2;
+  --elev: #ffffff;
+  --elev-2: #f2f2f2;
+  --panel: #ffffff;
+  --hover: rgba(0, 0, 0, 0.05);
+  --hover-strong: rgba(0, 0, 0, 0.1);
+  --line: rgba(0, 0, 0, 0.2);
+  --text: #0f0f0f;
+  --text-2: #606060;
+  --text-3: #909090;
+  --scrim: rgba(0, 0, 0, 0.5);
+  --header-bg: #ffffff;
+  --glass: #ffffff;
+  --chip: #f2f2f2;
+  --chip-hover: #e5e5e5;
+  --shadow-1: 0 4px 32px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 4px 32px rgba(0, 0, 0, 0.2);
+  --shadow-pop: 0 4px 32px rgba(0, 0, 0, 0.2);
+  --skeleton-a: #f2f2f2;
+  --skeleton-b: #e5e5e5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* YouTube uses Roboto everywhere */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Roboto", "Arial", system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* YouTube headings: Roboto, no negative tracking */
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: 20px;
+}
+
+p {
+  margin: 0;
+}
+
+ul,
+ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 8px 0;
+}
+
+kbd {
+  font-family: "Roboto Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
+  font-size: 11px;
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin: 0 2px;
+}
+
+:focus-visible {
+  outline: 2px solid #065fd4;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: #065fd4;
+  color: #fff;
+}
+
+/* YouTube-style scrollbars: slim thumb, transparent track. No explicit width
+   and no scrollbar-gutter — sizing ::-webkit-scrollbar forces a classic
+   (space-consuming) scrollbar, which shrinks the content box ~12px narrower
+   than YouTube's, shifting every grid and column. Let the browser keep its
+   native sizing so page width matches YouTube exactly. */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--text-2) 50%, transparent) transparent;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text-2) 48%, transparent);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--text-2) 75%, transparent);
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-button:vertical:decrement,
+::-webkit-scrollbar-button:vertical:increment {
+  display: none;
+  height: 0;
+}
+
+/* ---------- utilities ---------- */
+.muted {
+  color: var(--text-2);
+}
+.dark-text {
+  color: var(--text);
+}
+.center {
+  text-align: center;
+}
+.icon {
+  flex: none;
+  display: block;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* ---------- buttons (YouTube style) ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: var(--radius-pill);
+  font-family: "Roboto", "Arial", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--fast), color var(--fast), box-shadow var(--fast),
+    border-color var(--fast);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Solid dark button (YouTube's primary "Subscribe"/"Sign in") */
+.btn--primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.btn--primary:hover {
+  background: color-mix(in srgb, var(--text) 92%, var(--bg));
+}
+
+/* Grey pill (secondary actions) */
+.btn--outline {
+  background: var(--chip);
+  color: var(--text);
+}
+.btn--outline:hover {
+  background: var(--chip-hover);
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--text);
+}
+.btn--ghost:hover {
+  background: var(--chip);
+}
+
+.btn--chip {
+  background: var(--chip);
+  height: 34px;
+  padding: 0 12px;
+  font-weight: 500;
+}
+.btn--chip:hover {
+  background: var(--chip-hover);
+}
+
+.btn--xs {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+/* Circular icon button (YouTube masthead/side actions) */
+.iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--text);
+  position: relative;
+  transition: background var(--fast);
+}
+.iconbtn:hover {
+  background: var(--hover);
+}
+.iconbtn.is-open {
+  background: var(--hover-strong);
+}
+
+.linkbtn {
+  color: #065fd4;
+  font-weight: 500;
+  padding: 6px 8px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.linkbtn:hover {
+  background: var(--chip);
+}
+
+/* Chips — square-ish 8px, grey default, black when active (YouTube's) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--chip);
+  color: var(--text);
+  font-family: "Roboto", "Arial", sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--fast), color var(--fast);
+}
+.chip:hover {
+  background: var(--chip-hover);
+}
+.chip.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+.chip--avatar {
+  padding-left: 8px;
+}
+
+.chipbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 500;
+  transition: background var(--fast);
+}
+.chipbtn:hover {
+  background: var(--chip);
+}
+.chipbtn.is-active {
+  background: var(--chip);
+}
+
+/* ---------- fields (YouTube input style) ---------- */
+.field {
+  display: block;
+  position: relative;
+  margin-bottom: 16px;
+}
+.field > span,
+.field > legend {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color var(--fast), box-shadow var(--fast);
+  resize: vertical;
+  font: inherit;
+  color: var(--text);
+}
+.field select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23606060' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+  border-color: #065fd4;
+  box-shadow: 0 0 0 1px #065fd4;
+}
+.field__count {
+  position: absolute;
+  right: 10px;
+  bottom: -18px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ---------- skeleton (loading shimmer) ---------- */
+.sk__thumb,
+.sk__avatar,
+.sk__lines span {
+  background: linear-gradient(
+    100deg,
+    var(--skeleton-a) 30%,
+    var(--skeleton-b) 50%,
+    var(--skeleton-a) 70%
+  );
+  background-size: 220% 100%;
+  animation: shimmer 1.2s infinite linear;
+  border-radius: 8px;
+}
+.sk__thumb {
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+}
+.sk__row {
+  display: flex;
+  gap: 12px;
+  padding-top: 12px;
+}
+.sk__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex: none;
+}
+.sk__lines {
+  flex: 1;
+  display: grid;
+  gap: 8px;
+}
+.sk__lines span {
+  height: 12px;
+}
+.sk__lines span:last-child {
+  width: 60%;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

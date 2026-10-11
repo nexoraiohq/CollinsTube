@@ -1,0 +1,1394 @@
+/* ============================================================
+   Components: cards, thumbnails, chips, modals, comments, states
+   YouTube-accurate: flat cards, 12px thumb radius, no hover-lift
+   or shine sweep, 8px chips (grey/black), solid-surface modals.
+   ============================================================ */
+
+/* ---------------- Avatar ---------------- */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 500;
+  flex: none;
+  user-select: none;
+  overflow: hidden;
+}
+.avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.avatar--ring {
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--line);
+}
+
+/* ---------------- Thumbnail ---------------- */
+.thumb {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--skeleton-a);
+}
+.thumb__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 200ms var(--ease);
+}
+.thumb[data-loaded="true"] .thumb__img {
+  opacity: 1;
+}
+.thumb__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px;
+  color: #fff;
+  background: linear-gradient(transparent 40%, rgba(0, 0, 0, 0.7));
+}
+.thumb__fallback-mark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+.thumb__fallback-title {
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.thumb__duration {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.thumb__duration--live {
+  background: #ff0000;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.thumb__duration--live::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* ---------------- Video card (grid) ---------------- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 40px 16px;
+}
+.grid--home {
+  margin-top: 0;
+}
+
+/* Channel pages pack more videos per row than the home feed: five equal
+   columns with compact type, so a channel's uploads read as a dense shelf. */
+.grid--channel {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 28px 12px;
+}
+.grid--channel .card {
+  gap: 8px;
+}
+.grid--channel .card__title {
+  font-size: 14px;
+  line-height: 19px;
+  -webkit-line-clamp: 2;
+}
+.grid--channel .card__channel,
+.grid--channel .card__stats {
+  font-size: 12.5px;
+  line-height: 17px;
+}
+.grid--channel .card__body {
+  gap: 8px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.card__media {
+  position: relative;
+  display: block;
+}
+/* The clip wrapper holds the thumbnail (and watched-progress bar) so the
+   rounded corners still crop them. The hover-preview iframe is deliberately a
+   SIBLING of this wrapper, not a descendant: Chromium suspends a cross-origin
+   iframe whose every edge is clipped by an ancestor `overflow: hidden`, which
+   silently kills the embed's postMessage channel (no onReady, no infoDelivery,
+   no playback). Keeping the frame outside the clipped box keeps the player
+   alive while the thumbnail is still cropped by this wrapper. */
+.card__clip {
+  position: relative;
+  display: block;
+  border-radius: 12px;
+  overflow: hidden;
+}
+/* Muted inline hover preview, layered above the thumbnail (and above the red
+   watched-progress bar, which the control layer hides while a preview runs).
+   The frame must accept real pointer events: Chromium will not start the
+   cross-origin embed's media pipeline (no onReady, no infoDelivery, no
+   googlevideo fetch) for an iframe that never receives pointer input, even if
+   it is visible and unclipped. Clicks therefore navigate explicitly via the
+   frame's onClick handler rather than by falling through to the card link. */
+.card__preview {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #000;
+  cursor: pointer;
+}
+/* Opaque control-bar scrim that sits over the embed for the preview's whole
+   lifetime. Without it the embed's native control bar — which carries its own
+   volume icon — shows through before our overlay mounts, so users briefly see
+   two volume buttons stacked on the same card. */
+.card__previewscrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42px;
+  z-index: 3;
+  pointer-events: none;
+  background: linear-gradient(transparent, rgba(15, 15, 15, 0.85));
+}
+/* Touch devices never arm the preview, but hide the layer defensively too. */
+@media (hover: none) {
+  .card__preview {
+    display: none;
+  }
+  .card__previewscrim {
+    display: none;
+  }
+}
+/* Hover-preview control layer: a scrubbable timeline along the bottom and
+   volume + captions toggles on the right, mirroring the real player. It only
+   mounts once playback is confirmed and fades out when the pointer leaves. */
+/* The control layer's hit-area extends upward well past the visible controls.
+   The timeline hugs the card's bottom edge, so grabbing it from above would
+   otherwise cross the card's boundary and fire mouseleave mid-drag, unmounting
+   the preview. The generous transparent hit-area keeps the pointer "inside" the
+   card while scrubbing. Visuals stay pinned to the bottom. */
+.card__previewctl {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 34px 8px 6px;
+  opacity: 1;
+  transition: opacity 160ms var(--ease);
+  /* Click-through padding: on small cards the 34px grab zone covers the card
+     centre and would eat the iframe's play/pause click. Only the seek bar and
+     the meta row are interactive; everything else falls through to the embed. */
+  pointer-events: none;
+}
+.card__previewctl[data-visible="false"] {
+  opacity: 0;
+}
+/* Suppress the watched-progress bar while the live preview is running so the
+   two timelines don't stack. */
+.card:has(.card__previewctl) .card__progress-wrap {
+  display: none;
+}
+.card__seek {
+  position: relative;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  touch-action: none;
+  margin-bottom: 2px;
+  pointer-events: auto;
+}
+.card__seek::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  transition: height 120ms var(--ease);
+}
+.card__seek:hover::before {
+  height: 5px;
+}
+.card__seek-fill {
+  position: absolute;
+  left: 0;
+  height: 3px;
+  border-radius: 2px;
+  background: #f00;
+  pointer-events: none;
+  transition: height 120ms var(--ease);
+}
+.card__seek:hover .card__seek-fill {
+  height: 5px;
+}
+.card__seek-knob {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #f00;
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 120ms var(--ease);
+  pointer-events: none;
+}
+.card__seek:hover .card__seek-knob {
+  transform: translate(-50%, -50%) scale(1);
+}
+.card__previewmeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+}
+.card__previewtime {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+}
+.card__previewbtns {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 2px;
+}
+.card__previewbtn {
+  width: 30px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: #fff;
+  opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: background var(--fast), opacity var(--fast);
+}
+.card__previewbtn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 1;
+}
+.card__previewbtn[data-on] {
+  background: rgba(255, 255, 255, 0.25);
+}
+/* Never paint hover-preview controls on touch layouts. */
+@media (hover: none) {
+  .card__previewctl {
+    display: none;
+  }
+}
+.card__progress-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.3);
+  z-index: 3;
+}
+.card__progress {
+  display: block;
+  height: 100%;
+  background: #ff0000;
+}
+
+/* Shorts shelf on Home — vertical 9:16 cards (YouTube's Shorts row) */
+.shelf--shorts {
+  margin-bottom: 40px;
+}
+.shelf--shorts.shelf--mid {
+  margin-top: 36px;
+}
+.shelf__title--shorts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ff0000;
+}
+.shorts-row {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.shorts-row::-webkit-scrollbar {
+  display: none;
+}
+.shortcard {
+  flex: 0 0 158px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  align-content: start;
+}
+.shortcard__media {
+  display: block;
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--skeleton-a);
+}
+.shortcard__media .thumb {
+  aspect-ratio: auto;
+  height: 100%;
+  border-radius: 0;
+}
+.shortcard__media .thumb__img {
+  height: 100%;
+}
+.shortcard__title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.shortcard__stats {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.card__body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.card__avatar {
+  flex: none;
+}
+.card__meta {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.card__title {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 22px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card__channel,
+.card__stats {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.card__channel:hover {
+  color: var(--text);
+}
+.verified {
+  color: var(--text-2);
+}
+
+.card__more {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity var(--fast);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.6);
+}
+.card:hover .card__more,
+.card__more.is-open,
+.card__more:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .card__more {
+    opacity: 1;
+  }
+}
+
+/* Quick actions that appear over the thumbnail on hover, stacked vertically in
+   the top-right corner: Watch later (flips to a tick once saved) and open in
+   the mini player. Sits above the hover-preview layer so it stays clickable
+   while a preview is playing. */
+.card__quick {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  opacity: 0;
+  transition: opacity var(--fast);
+  pointer-events: none;
+}
+.card:hover .card__quick,
+.card__quick:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* Touch has no hover, so keep the actions permanently visible there. */
+@media (hover: none) {
+  .card__quick {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+.card__quickbtn {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  transition: background var(--fast), color var(--fast);
+}
+.card__quickbtn:hover {
+  background: rgba(0, 0, 0, 0.88);
+}
+/* Confirmed state: the Watch later button flashes a tick so the save reads as
+   acknowledged before it settles back to the clock. */
+.card__quickbtn.is-saved {
+  color: #0f0;
+}
+
+.cardmenu {
+  position: relative;
+  flex: 0 0 32px;
+  height: 32px;
+  align-self: flex-start;
+}
+.cardmenu__shield {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+.cardmenu__pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 236px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  z-index: 50;
+  overflow: hidden;
+  animation: pop 160ms var(--ease) both;
+  transform-origin: top right;
+}
+.cardmenu__pop--up {
+  top: auto;
+  bottom: calc(100% + 4px);
+  transform-origin: bottom right;
+}
+
+/* ---------------- Row (search / related / history) ---------------- */
+.row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  cursor: pointer;
+  position: relative;
+  min-width: 0;
+}
+.row__media {
+  position: relative;
+  flex: none;
+}
+.row--search .row__media,
+.row--history .row__media {
+  width: min(360px, 38vw);
+}
+.row--related {
+  gap: 8px;
+}
+.row--related .row__media {
+  width: 168px;
+}
+.row__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.row__title {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 26px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.row--related .row__title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.row__stats {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.row__channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  width: fit-content;
+}
+.row__channel:hover {
+  color: var(--text);
+}
+.row__channel-inline {
+  font-size: 13px;
+  color: var(--text-2);
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.row__desc {
+  font-size: 12px;
+  color: var(--text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.row__tail {
+  flex: none;
+}
+.row__remove {
+  justify-self: start;
+  margin-top: 4px;
+}
+.row--history {
+  cursor: default;
+}
+.row__progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.3);
+}
+.row__progress > span {
+  display: block;
+  height: 100%;
+  background: #ff0000;
+}
+
+.compact {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.compact .thumb {
+  width: 150px;
+  flex: none;
+}
+.compact__title {
+  font-size: 14px;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.compact__channel,
+.compact__stats {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ---------------- Chip bar ---------------- */
+.chipbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.chipbar__track {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  padding: 0;
+  scrollbar-width: none;
+}
+.chipbar__track::-webkit-scrollbar {
+  display: none;
+}
+.chipbar__nav {
+  display: none;
+}
+.home-chips {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 80;
+  background: var(--bg);
+  padding: 12px 0;
+  margin-bottom: 12px;
+}
+
+/* ---------------- Subscribe ---------------- */
+.sub-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.subscribe {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 500;
+  transition: background var(--fast), color var(--fast);
+}
+.subscribe:hover {
+  background: color-mix(in srgb, var(--text) 90%, var(--bg));
+}
+.subscribe.is-subscribed {
+  background: var(--chip);
+  color: var(--text);
+}
+.subscribe.is-subscribed:hover {
+  background: var(--chip-hover);
+}
+.subscribe--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: 16px;
+}
+.subscribe__count {
+  opacity: 0.6;
+  font-weight: 500;
+  font-size: 13px;
+}
+.subscribe--bell {
+  padding: 0 8px;
+  margin-left: 4px;
+  background: var(--chip);
+  color: var(--text);
+  border-radius: 50%;
+  width: 36px;
+  justify-content: center;
+}
+
+/* ---------------- Segmented / pills ---------------- */
+.segmented,
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  background: var(--chip);
+  border-radius: 18px;
+}
+.segmented:hover,
+.pill:hover {
+  background: var(--chip-hover);
+}
+.segmented__btn,
+.pill {
+  gap: 6px;
+  padding: 0 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+.segmented__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  padding: 0 14px;
+  border-radius: 18px;
+  transition: background var(--fast), color var(--fast);
+}
+.segmented__btn.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+.segmented__divider {
+  width: 1px;
+  height: 20px;
+  background: var(--line);
+}
+.pill.is-active {
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* ---------------- Comments (YouTube layout) ---------------- */
+.comments {
+  margin-top: 24px;
+}
+.comments__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.comments__head h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.comments__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 18px;
+}
+.comments__sort:hover {
+  background: var(--chip);
+}
+.comment-compose {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.comment-compose__field {
+  flex: 1;
+  position: relative;
+}
+.comment-compose__field input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  padding: 8px 0;
+  outline: none;
+  transition: border-color var(--fast);
+}
+.comment-compose__field input:focus {
+  border-color: var(--text);
+}
+.comment-compose__underline {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--text);
+  transform-origin: left;
+  transition: transform var(--slow);
+}
+.comment-compose__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.comment-list {
+  display: grid;
+  gap: 24px;
+}
+.comment {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.comment__body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.comment__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.comment__meta {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+}
+.comment__author {
+  font-weight: 500;
+  font-size: 13px;
+}
+.comment__meta time {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.comment__text {
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.comment__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.comment__heart {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.linkbtn--replies {
+  color: #065fd4;
+  font-weight: 500;
+  font-size: 14px;
+  width: fit-content;
+  padding: 6px 12px 6px 0;
+}
+.linkbtn--replies:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+.comment__more {
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+.comment:hover .comment__more {
+  opacity: 1;
+}
+.comment-replies {
+  margin-top: 12px;
+  display: grid;
+  gap: 16px;
+}
+.comment-replies .comment {
+  gap: 16px;
+}
+
+/* ---------------- Modal ---------------- */
+.modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 160ms ease both;
+}
+.modal {
+  position: relative;
+  width: 100%;
+  max-height: min(86dvh, 900px);
+  background: var(--panel);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalIn 200ms var(--ease) both;
+}
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+}
+.modal--sm {
+  max-width: 400px;
+}
+.modal--md {
+  max-width: 560px;
+}
+.modal--lg {
+  max-width: 800px;
+}
+.modal--full {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  border-radius: 0;
+  margin: 0;
+  background: var(--bg);
+}
+.modal--full .modal__body {
+  padding: 0;
+  height: 100%;
+  overflow: auto;
+}
+.modal--full .modal__close-float {
+  display: none;
+}
+.modal-root:has(.modal--full) {
+  padding: 0;
+}
+.modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 16px 12px 24px;
+  border-bottom: 1px solid var(--line);
+}
+.modal__title {
+  font-size: 20px;
+  font-weight: 500;
+}
+.modal__body {
+  padding: 20px 24px 24px;
+  overflow: auto;
+}
+.modal--bare .modal__close-float {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  background: var(--scrim);
+  color: #fff;
+}
+
+/* Mobile full-screen search takeover */
+.msearch {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+.msearch__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+.msearch__bar .iconbtn {
+  flex: 0 0 auto;
+}
+.msearch__bar .searchbar {
+  flex: 1;
+  max-width: none;
+}
+.msearch .suggestions {
+  position: static;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+  max-height: none;
+  animation: none;
+  background: var(--bg);
+}
+
+/* ---------------- Empty / state ---------------- */
+.empty {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: clamp(40px, 8vw, 80px) 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.empty h1,
+.empty h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.empty__art {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--chip);
+  color: var(--text-2);
+}
+.empty__art--big {
+  width: 120px;
+  height: 120px;
+}
+.empty__suggestions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.caughtup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.loadmore {
+  display: grid;
+  place-items: center;
+  padding: 40px 0 8px;
+}
+
+/* ---------------- Voice search ---------------- */
+.voice {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  text-align: center;
+  padding: 12px 6px 6px;
+}
+.voice__pulse {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--chip);
+  color: var(--text);
+  position: relative;
+}
+.voice__pulse::before,
+.voice__pulse::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--text-2);
+  animation: pulse 1.6s ease-out infinite;
+}
+.voice__pulse::after {
+  animation-delay: 0.5s;
+}
+@keyframes pulse {
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+.voice__status {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* ---------------- Shortcuts list ---------------- */
+.shortcut-list {
+  display: grid;
+  gap: 8px;
+}
+.shortcut-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.shortcut-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Sign in (Google-style) ---------------- */
+.signin form {
+  margin-top: 16px;
+}
+.signin__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.signin__note {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+/* ---------------- Save to library ---------------- */
+.saveform__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* ---------------- YouTube API settings ---------------- */
+.apibanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--chip);
+  font-size: 14px;
+}
+.apibanner span {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-2);
+}
+.apibanner .linkbtn {
+  color: #065fd4;
+}
+.apisettings__title {
+  margin: 0 0 8px;
+}
+.apisettings__lead {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.apisettings__field {
+  margin-bottom: 12px;
+}
+.apisettings__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+.apisettings__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-2);
+}
+.apisettings__dot--on {
+  background: #00c853;
+}
+.apisettings__actions {
+  display: flex;
+  gap: 8px;
+}
+.apisettings__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #065fd4;
+  text-decoration: none;
+}
+.apisettings__link:hover {
+  text-decoration: underline;
+}
+.apisettings__fineprint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+/* ---------------- Responsive components ---------------- */
+/* Tablet: let the home grid drop to two columns comfortably. */
+@media (max-width: 1400px) {
+  .grid--channel {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+/* Tablet: the five-up channel shelf thins out so titles stay legible. */
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+  .grid--channel {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Small tablets and large phones: two columns, the last step before the single
+   column that phones settle on. */
+@media (max-width: 900px) {
+  .grid--channel {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 12px;
+  }
+}
+/* Phones: full-width cards, tighter type, and the grid collapses to one column
+   the way YouTube's mobile home feed does. */
+@media (max-width: 760px) {
+  .grid,
+  .grid--home,
+  .grid--channel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+  .grid--channel .card__title {
+    font-size: 15px;
+    line-height: 21px;
+  }
+  .grid--channel .card__channel,
+  .grid--channel .card__stats {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .card {
+    gap: 10px;
+  }
+  .card__title {
+    font-size: 15px;
+    line-height: 21px;
+  }
+  .card__channel,
+  .card__stats {
+    font-size: 13px;
+  }
+  .card__body {
+    gap: 10px;
+  }
+  /* The overflow menu is always reachable without hover on touch. */
+  .card__more {
+    opacity: 1;
+  }
+
+  /* Rows: shrink thumbnails so text keeps room on narrow screens. */
+  .row {
+    gap: 12px;
+  }
+  .row--search .row__media,
+  .row--history .row__media {
+    width: min(168px, 34vw);
+  }
+  .row--related .row__media {
+    width: 160px;
+  }
+  .row__title {
+    font-size: 15px;
+    line-height: 21px;
+  }
+  .row--related .row__title {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  /* Compact rows in rails. */
+  .compact .thumb {
+    width: 130px;
+  }
+
+  /* Chip bar becomes a single edge-to-edge scroller with no arrow buttons. */
+  .chipbar__track {
+    margin: 0 -12px;
+    padding: 0 12px;
+  }
+
+  /* Comments: tighter rhythm and smaller compose input on phones. */
+  .comments {
+    margin-top: 16px;
+  }
+  .comments__head {
+    margin-bottom: 16px;
+  }
+  .comments__head h2 {
+    font-size: 17px;
+  }
+  .comment-compose {
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .comment {
+    gap: 12px;
+  }
+  .comment-list {
+    gap: 20px;
+  }
+  .comment-compose__actions {
+    margin-top: 6px;
+  }
+  .segmented,
+  .pill {
+    min-height: 32px;
+  }
+}
+
+/* Very small phones: further trim thumbnails and type so nothing overflows. */
+@media (max-width: 400px) {
+  .row--search .row__media,
+  .row--history .row__media {
+    width: 150px;
+  }
+  .row--related .row__media {
+    width: 140px;
+  }
+  .compact .thumb {
+    width: 116px;
+  }
+  .card__title {
+    font-size: 14px;
+  }
+}

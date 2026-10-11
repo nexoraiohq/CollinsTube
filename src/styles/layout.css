@@ -1,0 +1,991 @@
+/* ============================================================
+   Shell: header, sidebar, main, mobile nav, palette, mini, toasts
+   YouTube-accurate: solid surfaces, no glassmorphism, 56px masthead,
+   centered pill search (border + grey button), 72px/240px guide.
+   ============================================================ */
+
+.shell {
+  min-height: 100dvh;
+}
+
+/* ---------------- Header (masthead) ---------------- */
+.header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  z-index: 120;
+  background: var(--header-bg);
+  border-bottom: 1px solid transparent;
+}
+
+.header__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.header__logo {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 8px;
+  transition: background var(--fast);
+}
+.header__logo:hover {
+  background: var(--hover);
+}
+.logo {
+  display: block;
+  color: var(--text);
+}
+
+.header__search {
+  flex: 0 1 640px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.searchbar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 600px;
+}
+.searchbar__field {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.searchbar input {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px 0 16px;
+  font-size: 16px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: 20px 0 0 20px;
+  outline: none;
+  transition: border-color var(--fast), box-shadow var(--fast), background var(--fast);
+}
+.header__search.is-focused .searchbar input,
+.header__search.is-focused .searchbar__btn {
+  border-color: #065fd4;
+}
+.header__search.is-focused .searchbar input {
+  box-shadow: inset 1px 0 0 #065fd4;
+}
+.header__search.is-focused .searchbar__btn {
+  box-shadow: inset -1px 0 0 #065fd4;
+}
+.searchbar input::placeholder {
+  color: var(--text-3);
+}
+.searchbar__lead {
+  position: absolute;
+  left: 0;
+  width: 40px;
+  height: 40px;
+  pointer-events: none;
+  opacity: 0.55;
+}
+.searchbar__clear {
+  position: absolute;
+  right: 4px;
+  width: 34px;
+  height: 34px;
+}
+.searchbar__btn {
+  height: 40px;
+  width: 64px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: 0 20px 20px 0;
+  color: var(--text);
+  transition: background var(--fast);
+}
+.searchbar__btn:hover {
+  background: var(--chip-hover);
+}
+.searchbar__mic {
+  flex: none;
+  margin-left: 8px;
+}
+
+.suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 72px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  padding: 8px 0;
+  z-index: 40;
+  animation: pop 160ms var(--ease) both;
+  max-height: 60vh;
+  overflow: auto;
+}
+.suggestions__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 8px 16px;
+  text-align: left;
+  color: var(--text);
+  transition: background var(--fast);
+}
+.suggestions__item:hover,
+.suggestions__item.is-active {
+  background: var(--hover);
+}
+.suggestions__text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.suggestions__text--tag {
+  color: #065fd4;
+}
+.suggestions__go {
+  transform: rotate(180deg);
+  opacity: 0;
+  transition: opacity var(--fast);
+}
+.suggestions__item:hover .suggestions__go {
+  opacity: 1;
+}
+
+.header__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex: 1 1 0;
+}
+
+.header__mobile-search {
+  display: none;
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #cc0000;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--bg);
+}
+
+.header__account {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: box-shadow var(--fast);
+}
+.header__account:hover {
+  box-shadow: 0 0 0 3px var(--hover);
+}
+.signin-avatar {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.signin-avatar--lg {
+  width: 44px;
+  height: 44px;
+}
+
+/* Create button — YouTube's solid dark pill (or blue when signed out) */
+.header__create {
+  gap: 6px;
+  padding: 0 14px;
+  border-radius: 18px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  background: var(--chip);
+  font-weight: 500;
+  transition: background var(--fast);
+}
+.header__create:hover {
+  background: var(--chip-hover);
+}
+
+/* ---------------- Dropdowns ---------------- */
+.dropdown-anchor {
+  position: relative;
+}
+.dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 300px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-pop);
+  z-index: 60;
+  overflow: hidden;
+  animation: pop 160ms var(--ease) both;
+  transform-origin: top right;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+}
+.dropdown__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.dropdown__head h3 {
+  font-size: 16px;
+}
+.dropdown__rule {
+  margin: 6px 0;
+  border-top: 1px solid var(--line);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: left;
+  color: var(--text);
+  font-weight: 400;
+  transition: background var(--fast);
+}
+.menu-item:hover {
+  background: var(--hover);
+}
+.menu-item__chev {
+  margin-left: auto;
+  color: var(--text-2);
+}
+
+.notif-list {
+  max-height: 60vh;
+  overflow: auto;
+}
+.notif {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  align-items: flex-start;
+  position: relative;
+  transition: background var(--fast);
+}
+.notif:hover {
+  background: var(--hover);
+}
+.notif__body {
+  display: grid;
+  gap: 3px;
+  font-size: 14px;
+  color: var(--text);
+}
+.notif__body strong {
+  font-weight: 500;
+}
+.notif__body time {
+  color: var(--text-2);
+  font-size: 12px;
+}
+.notif__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #065fd4;
+  margin-top: 6px;
+  flex: none;
+}
+.notif.is-unread {
+  background: color-mix(in srgb, #065fd4 8%, transparent);
+}
+
+.dropdown--account {
+  min-width: 320px;
+}
+.account-card {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: center;
+}
+.account-card > div {
+  display: grid;
+  gap: 2px;
+}
+.account-card strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.account-card__link {
+  color: #065fd4;
+  font-size: 14px;
+  font-weight: 500;
+}
+.dropdown--bell {
+  min-width: 400px;
+  max-width: 480px;
+}
+
+/* ---------------- Sidebar (guide) ---------------- */
+.sidebar {
+  position: fixed;
+  top: var(--header-h);
+  bottom: 0;
+  left: 0;
+  width: var(--side-w);
+  background: var(--bg);
+  z-index: 90;
+  transition: width var(--slow), transform var(--slow);
+}
+.sidebar__scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 12px 24px;
+  scrollbar-width: thin;
+}
+.sidebar--rail {
+  width: var(--rail-w);
+}
+.sidebar--rail .sidebar__scroll {
+  padding: 4px 0 12px;
+  scrollbar-width: none;
+}
+.sidebar--rail .sidebar__scroll::-webkit-scrollbar {
+  display: none;
+}
+.sidebar--rail .side-item {
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 0 14px;
+  font-size: 10px;
+  font-weight: 400;
+  text-align: center;
+  border-radius: 0;
+  min-height: 74px;
+}
+.sidebar--rail .side-item.is-active {
+  background: var(--chip);
+  font-weight: 500;
+  box-shadow: none;
+}
+.sidebar--rail .sidebar__heading,
+.sidebar--rail .sidebar__footer {
+  display: none;
+}
+
+.side-item {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--text);
+  font-weight: 400;
+  font-size: 14px;
+  transition: background var(--fast);
+  width: 100%;
+}
+.side-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.side-item:hover {
+  background: var(--hover);
+}
+.side-item.is-active {
+  background: var(--chip);
+  font-weight: 500;
+  box-shadow: none;
+}
+.side-item--sub {
+  gap: 14px;
+  padding-left: 12px;
+}
+.sidebar__group,
+.sidebar__section ul {
+  display: grid;
+  gap: 0;
+}
+.sidebar__section {
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 8px;
+}
+.sidebar__section:last-child {
+  border-bottom: 0;
+}
+.sidebar__heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 8px 12px 6px;
+  color: var(--text);
+}
+.sidebar__rule {
+  margin: 8px 0;
+}
+.sidebar__footer {
+  padding: 8px 12px 0;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.footer-link {
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 12px;
+}
+.footer-link:hover {
+  color: var(--text);
+}
+.sidebar__copy {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.side-empty {
+  padding: 6px 4px;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: var(--header-h) 0 0 0;
+  background: var(--scrim);
+  z-index: 119;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--slow);
+}
+.drawer-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ---------------- Main ---------------- */
+.main {
+  margin-left: var(--side-w);
+  padding: calc(var(--header-h) + 24px) 24px 64px;
+  min-height: 100dvh;
+  transition: margin-left var(--slow);
+}
+.shell--rail .main {
+  margin-left: var(--rail-w);
+}
+.shell--mobile .main {
+  margin-left: 0;
+  padding: calc(var(--header-h) + 16px) 16px 84px;
+}
+/* Watch page: full width (YouTube collapses the guide on watch). YouTube uses
+   16px gutters here (primary starts at x=16), not the 24px used on the grid. */
+.shell--watch .main {
+  margin-left: 0;
+  padding: calc(var(--header-h) + 24px) 16px 64px;
+}
+.shell--watch .sidebar {
+  transform: translateX(-102%);
+}
+.shell--watch.shell--expanded .sidebar {
+  transform: translateX(0);
+  box-shadow: var(--shadow-2);
+}
+.page {
+  animation: fadeUp 200ms var(--ease) both;
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.page-head {
+  margin-bottom: 24px;
+}
+.page-head--split {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.page-head__row {
+  margin-top: 16px;
+}
+.page-head__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Mobile nav ---------------- */
+.mobilenav {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 58px;
+  background: var(--header-bg);
+  border-top: 1px solid var(--line);
+  z-index: 118;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobilenav__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 10px;
+  color: var(--text-2);
+  transition: color var(--fast);
+}
+.mobilenav__item.is-active {
+  color: var(--text);
+  font-weight: 500;
+}
+.mobilenav__create {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--chip);
+  border: 1px solid var(--line);
+}
+
+/* ---------------- Mini player ---------------- */
+/* Floating player opened from a card's "open in mini player" action. It plays
+   the video live in an embedded frame, pinned to the bottom-RIGHT corner like
+   YouTube, and toggles between a compact strip and a larger panel with the `i`
+   key. */
+.mini {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
+  z-index: 140;
+  animation: miniIn 200ms var(--ease) both;
+}
+@keyframes miniIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.mini__media {
+  position: relative;
+  width: 120px;
+  flex: none;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+}
+.mini__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+/* Invisible link that rides over the iframe (which would otherwise swallow
+   every click, being on top). Sends the mini player back to the full watch
+   page without needing a control button beside the video. */
+.mini__expand {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.mini__meta {
+  min-width: 0;
+  flex: 1;
+}
+.mini__title {
+  font-weight: 500;
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mini__meta .muted {
+  font-size: 12px;
+}
+.mini__controls {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: none;
+}
+/* Expanded: a bigger panel that still floats over the page, so the content
+   underneath stays browsable while the video keeps playing. */
+.mini--expanded {
+  width: min(560px, calc(100vw - 40px));
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px;
+}
+.mini--expanded .mini__media {
+  width: 100%;
+}
+.mini--expanded .mini__meta {
+  padding: 0 4px;
+}
+.mini--expanded .mini__controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.mini--expanded .mini__controls .iconbtn {
+  color: #fff;
+}
+
+/* ---------------- Toasts ---------------- */
+.toasts {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 400;
+  display: grid;
+  gap: 8px;
+  max-width: min(440px, calc(100vw - 48px));
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: 4px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-2);
+  animation: toastIn 200ms var(--ease) both;
+}
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.toast__msg {
+  flex: 1;
+  font-size: 14px;
+}
+.toast__action {
+  color: #3ea6ff;
+  font-weight: 500;
+  font-size: 14px;
+}
+.toast__action:hover {
+  text-decoration: underline;
+}
+.toast__close {
+  color: var(--text-2);
+  display: grid;
+  place-items: center;
+}
+
+/* ---------------- Command palette ---------------- */
+.palette {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: grid;
+  place-items: start center;
+  padding-top: min(14vh, 130px);
+}
+.palette__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  animation: fadeIn 160ms ease both;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+.palette__panel {
+  position: relative;
+  width: min(680px, 92vw);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2);
+  overflow: hidden;
+  animation: pop 200ms var(--ease) both;
+}
+.palette__input {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-2);
+}
+.palette__input input {
+  flex: 1;
+  background: none;
+  border: 0;
+  outline: none;
+  font-size: 16px;
+}
+.palette__list {
+  max-height: 52vh;
+  overflow: auto;
+  padding: 8px;
+}
+.palette__item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--text);
+}
+.palette__item.is-active {
+  background: var(--hover);
+}
+.palette__icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--chip);
+  flex: none;
+}
+.palette__label {
+  flex: 1;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette__hint {
+  color: var(--text-2);
+  font-size: 13px;
+  max-width: 42%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette__empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--text-2);
+}
+.palette__foot {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+
+/* ---------------- Responsive ---------------- */
+@media (max-width: 1024px) {
+  .sidebar {
+    top: var(--header-h);
+    width: min(300px, 84vw);
+    transform: translateX(-102%);
+    box-shadow: none;
+    z-index: 119;
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-2);
+  }
+  .sidebar--rail {
+    width: min(300px, 84vw);
+  }
+  .mobilenav {
+    display: flex;
+  }
+}
+
+@media (max-width: 760px) {
+  .header {
+    gap: 4px;
+    padding: 0 8px;
+  }
+  .header__search {
+    display: none;
+  }
+  .header__mobile-search {
+    display: inline-flex;
+  }
+  /* Upload lives in the fixed bottom nav (+) on mobile, not the header. */
+  .header__create {
+    display: none;
+  }
+  .header__left {
+    flex: 1;
+  }
+  .toasts {
+    left: 12px;
+    right: 12px;
+    bottom: 72px;
+    max-width: none;
+  }
+  .mini {
+    left: 10px;
+    right: 10px;
+    width: auto;
+    bottom: 68px;
+  }
+}
+
+/* ---------------- Tablet: constrain the search field ---------------- */
+/* Between the phone breakpoint (where search swaps to an icon) and full
+   desktop, the 640px search box is wider than the room left after the logo and
+   hamburger. Without a cap it grows over the menu button and swallows its
+   clicks, so the drawer can never open. */
+@media (min-width: 761px) and (max-width: 1100px) {
+  .header__search {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+  .searchbar {
+    max-width: 400px;
+  }
+}
+
+/* ---------------- Small phones ---------------- */
+@media (max-width: 600px) {
+  /* YouTube keeps a slim 12px gutter on phones so cards breathe. */
+  .shell--mobile .main {
+    padding: calc(var(--header-h) + 12px) 12px 96px;
+  }
+  .shell--watch .main {
+    padding: var(--header-h) 0 96px;
+  }
+  /* Account menu is a corner dropdown; pin it to the viewport edge. */
+  .dropdown--account,
+  .dropdown--bell {
+    position: fixed;
+    top: var(--header-h);
+    right: 8px;
+    left: auto;
+    min-width: 0;
+    width: min(320px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+  }
+  .dropdown--bell {
+    width: min(360px, calc(100vw - 16px));
+  }
+  /* Bottom nav labels stay legible but the bar is slimmer on short phones. */
+  .mobilenav {
+    height: 54px;
+  }
+  .mini {
+    left: 8px;
+    right: 8px;
+    bottom: 62px;
+    width: auto;
+    padding: 3px;
+  }
+  .mini__media {
+    width: 104px;
+  }
+  .mini--expanded {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    bottom: 62px;
+  }
+  /* Toasts sit above the slimmer bottom nav. */
+  .toasts {
+    bottom: 66px;
+    left: 8px;
+    right: 8px;
+  }
+}
+
+/* Very short phones (landscape or compact): reclaim vertical space. */
+@media (max-width: 900px) and (max-height: 540px) {
+  .mobilenav {
+    height: 48px;
+  }
+  .mobilenav__item {
+    font-size: 9px;
+    gap: 1px;
+  }
+}
